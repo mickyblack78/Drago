@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mobile Dragon Dash</title>
+    <style>
+        /* Prevents mobile scrolling and bouncing */
+        * { touch-action: manipulation; }
+        body { 
+            margin: 0; 
+            padding: 0;
+            overflow: hidden; 
+            background: #87CEEB; 
+            font-family: sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        #ui { 
+            position: absolute; 
+            top: 5%; 
+            left: 5%; 
+            font-size: 20px; 
+            font-weight: bold; 
+            color: #1b4332; 
+            z-index: 10;
+        }
+        canvas { display: block; width: 100vw; height: 100vh; }
+    </style>
+</head>
+<body>
+    <div id="ui">Obstacles: <span id="score">0</span>/10</div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+
+        // Responsive Sizing
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        let score = 0;
+        let isDancing = false;
+        let frame = 0;
+
+        const dragon = {
+            x: canvas.width * 0.15, 
+            y: 0, 
+            w: 50, 
+            h: 50, 
+            dy: 0, 
+            jumpForce: -14, 
+            gravity: 0.7, 
+            grounded: false
+        };
+
+        const obstacles = [];
+        const groundY = canvas.height * 0.85;
+        dragon.y = groundY - dragon.h;
+
+        function spawnObstacle() {
+            if (score >= 10 || isDancing) return;
+            const isLog = Math.random() > 0.5;
+            obstacles.push({ 
+                x: canvas.width, 
+                type: isLog ? 'log' : 'puddle', 
+                w: 40, 
+                h: isLog ? 40 : 10, 
+                passed: false 
+            });
+        }
+
+        function handleInput(e) {
+            if (e) e.preventDefault();
+            if (dragon.grounded && !isDancing) {
+                dragon.dy = dragon.jumpForce;
+                dragon.grounded = false;
+            }
+        }
+
+        function drawDragon() {
+            ctx.save();
+            if (isDancing) {
+                ctx.translate(0, Math.sin(frame * 0.2) * 30);
+                ctx.rotate(Math.sin(frame * 0.1) * 0.3);
+            }
+            
+            // Dragon Body
+            ctx.fillStyle = '#4CAF50';
+            ctx.fillRect(dragon.x, dragon.y, dragon.w, dragon.h);
+            
+            // Eyes
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(dragon.x + 35, dragon.y + 15, 10, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'black';
+            ctx.beginPath();
+            ctx.arc(dragon.x + 38, dragon.y + 15, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function update() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Sky & Ground
+            ctx.fillStyle = '#5d4037';
+            ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+
+            if (!isDancing) {
+                dragon.dy += dragon.gravity;
+                dragon.y += dragon.dy;
+
+                if (dragon.y + dragon.h > groundY) {
+                    dragon.y = groundY - dragon.h;
+                    dragon.dy = 0;
+                    dragon.grounded = true;
+                }
+
+                for (let i = obstacles.length - 1; i >= 0; i--) {
+                    let obs = obstacles[i];
+                    obs.x -= (canvas.width * 0.015); // Dynamic speed based on screen width
+
+                    ctx.fillStyle = obs.type === 'log' ? '#8d6e63' : '#2196F3';
+                    ctx.fillRect(obs.x, groundY - obs.h, obs.w, obs.h);
+
+                    // Mobile-friendly Hitbox
+                    if (dragon.x < obs.x + obs.w && dragon.x + dragon.w > obs.x &&
+                        dragon.y + dragon.h > groundY - obs.h) {
+                        score = 0;
+                        scoreEl.innerText = score;
+                        obstacles.length = 0;
+                    }
+
+                    if (!obs.passed && obs.x + obs.w < dragon.x) {
+                        obs.passed = true;
+                        score++;
+                        scoreEl.innerText = score;
+                        if (score >= 10) isDancing = true;
+                    }
+                    if (obs.x < -50) obstacles.splice(i, 1);
+                }
+
+                if (frame % 70 === 0) spawnObstacle();
+            } else {
+                ctx.fillStyle = '#1b4332';
+                ctx.font = 'bold 24px sans-serif';
+                ctx.textAlign = "center";
+                ctx.fillText("VICTORY DANCE!", canvas.width/2, canvas.height/2);
+            }
+
+            drawDragon();
+            frame++;
+            requestAnimationFrame(update);
+        }
+
+        // Mobile listeners
+        window.addEventListener('touchstart', handleInput, { passive: false });
+        window.addEventListener('mousedown', handleInput);
+        window.addEventListener('keydown', (e) => { if(e.code === 'Space') handleInput(); });
+
+        update();
+    </script>
+</body>
+</html>
