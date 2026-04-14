@@ -23,7 +23,7 @@
         <button class="btn-green" onclick="connect()">0. CONNECT & UNLOCK</button>
         <button class="btn-green" onclick="checkFaults()">1. CHECK FAULTS</button>
         <button class="btn-green" onclick="toggleStream()" id="streamBtn">2. LIVE VIEW</button>
-        <button class="btn-green" onclick="readPIDs()">3. PIDs</button>
+        <button class="btn-blue" onclick="readStandardSensors()">POLL SENSOR DATA (NO LOCK)</button>
         <button class="btn-orange" onclick="readFreezeFrame()">4. FREEZE FRAME</button>
         <button class="btn-red" onclick="clearFaults()">5. CLEAR FAULTS</button>
         <button class="btn-red" onclick="disconnectPort()">6. DISCONNECT</button>
@@ -91,6 +91,41 @@
             }, 4500);
         }
 
+       // --- STANDARD ECU MONITORING BLOCK ---
+async function readStandardSensors() {
+    if (!port) { log("ERROR: CONNECT FIRST"); return; }
+    
+    log("INITIALIZING STANDARD OBD-II SESSION...");
+    await send("ATZ\r");   // Reset
+    await send("ATL0\r");  // Linefeeds off
+    await send("ATH0\r");  // Headers off (cleaner data)
+    await send("ATSP0\r"); // Protocol: Auto-search
+    
+    // We use Service 01 (Show Current Data)
+    // These are universal across almost all 2.0L Diesels
+    const standardPIDs = [
+        { id: "010C", name: "Engine RPM" },
+        { id: "0105", name: "Coolant Temp" },
+        { id: "0123", name: "Fuel Rail Pressure" },
+        { id: "0110", name: "MAF Air Flow" },
+        { id: "010B", name: "Intake Map Pressure" },
+        { id: "0104", name: "Calculated Load" }
+    ];
+
+    log("--- POLLING LIVE DATA ---");
+    for (let pid of standardPIDs) {
+        let res = await send(pid.id + "\r");
+        
+        if (res.includes("41")) { // 41 is the positive response for Service 01
+            // Basic raw data extraction
+            let rawHex = res.split("41" + pid.id.substring(2))[1].substring(0, 4);
+            log(`${pid.name}: ${rawHex} (Raw Hex)`);
+        } else {
+            log(`${pid.name}: NO DATA/UNSUPPORTED`);
+        }
+    }
+}
+// --- END OF BLOCK --- 
         async function connect() {
             try {
                 port = await navigator.serial.requestPort();
