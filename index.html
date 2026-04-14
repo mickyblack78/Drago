@@ -189,8 +189,8 @@
             let res = await send("2705\r");
             
             // 3. THE SEED VAULT
-            if (res.includes("6706")) {
-                lastSeed = res.split("6706")[1].substring(0, 4);
+            if (res.includes("6705")) {
+                lastSeed = res.split("6705")[1].substring(0, 4);
                 log("************************************");
                 log("CRITICAL SEED CAPTURED: " + lastSeed);
                 log("************************************");
@@ -209,7 +209,7 @@
             let calculatedKey = keyGuesses[attemptIndex](lastSeed);
             log(`ATTEMPT #${attemptIndex + 1}: Trying [${calculatedKey}]`);
             let res = await send("2705" + calculatedKey + "\r");
-            if (res.includes("6706")) {
+            if (res.includes("6705")) {
                 log("SUCCESS! Level 05 Unlocked.");
             } else {
                 log("KEY FAILED: " + res);
