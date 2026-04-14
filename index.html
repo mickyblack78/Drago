@@ -105,41 +105,37 @@ function translateData(pid, hex) {
             }, 4500);
         }
 
-       // --- STANDARD ECU MONITORING BLOCK ---
-async function readStandardSensors() {
+        async function readStandardSensors() {
     if (!port) { log("ERROR: CONNECT FIRST"); return; }
     
-    log("INITIALIZING STANDARD OBD-II SESSION...");
-    await send("ATZ\r");   // Reset
-    await send("ATL0\r");  // Linefeeds off
-    await send("ATH0\r");  // Headers off (cleaner data)
-    await send("ATSP0\r"); // Protocol: Auto-search
+    log("POLLING LIVE SENSORS...");
     
-    // We use Service 01 (Show Current Data)
-    // These are universal across almost all 2.0L Diesels
     const standardPIDs = [
         { id: "010C", name: "Engine RPM" },
         { id: "0105", name: "Coolant Temp" },
-        { id: "0123", name: "Fuel Rail Pressure" },
+        { id: "0123", name: "Fuel Rail" },
         { id: "0110", name: "MAF Air Flow" },
-        { id: "010B", name: "Intake Map Pressure" },
-        { id: "0104", name: "Calculated Load" }
+        { id: "010B", name: "Intake MAP" },
+        { id: "0104", name: "Engine Load" }
     ];
 
-    log("--- POLLING LIVE DATA ---");
     for (let pid of standardPIDs) {
         let res = await send(pid.id + "\r");
         
-        if (res.includes("41")) { // 41 is the positive response for Service 01
-            // Basic raw data extraction
-            let rawHex = res.split("41" + pid.id.substring(2))[1].substring(0, 4);
-            log(`${pid.name}: ${rawHex} (Raw Hex)`);
+        // Check for '41' (Success code for Service 01)
+        if (res.includes("41")) {
+            // Strip the response to get just the data hex
+            let parts = res.split("41" + pid.id.substring(2));
+            if (parts.length > 1) {
+                let rawHex = parts[1].substring(0, 4);
+                // INTEGRITY: Log the translated value
+                log(`${pid.name}: ${translateData(pid.id, rawHex)}`);
+            }
         } else {
-            log(`${pid.name}: NO DATA/UNSUPPORTED`);
+            log(`${pid.name}: NO DATA`);
         }
     }
-}
-// --- END OF BLOCK --- 
+        }
         async function connect() {
             try {
                 port = await navigator.serial.requestPort();
