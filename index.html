@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>MASTER</title>
+    <title>MASTER1</title>
     <style>
         body { background:#111; color:#0f0; font-family: monospace; padding:10px; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
@@ -209,7 +209,7 @@
             let calculatedKey = keyGuesses[attemptIndex](lastSeed);
             log(`ATTEMPT #${attemptIndex + 1}: Trying [${calculatedKey}]`);
             let res = await send("2706" + calculatedKey + "\r");
-            if (res.includes("6707")) {
+            if (res.includes("6706")) {
                 log("SUCCESS! Level 05 Unlocked.");
             } else {
                 log("KEY FAILED: " + res);
