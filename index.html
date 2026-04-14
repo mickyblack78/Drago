@@ -175,7 +175,7 @@
             let sessionRes = await send("1002\r");
             
             // 2. HANDSHAKE CHECK
-            if (!sessionRes.includes("5003")) {
+            if (!sessionRes.includes("5002")) {
                 log("!! SESSION FAILED: ECU NOT READY.");
                 isHandshaking = false;
                 startPinger(); 
