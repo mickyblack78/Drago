@@ -73,6 +73,20 @@
             return res.trim().replace(/\s+/g, '');
         }
 
+        // --- AUTO-TRANSLATOR FOR X200 DATA ---
+function translateData(pid, hex) {
+    let val = parseInt(hex, 16);
+    switch(pid) {
+        case "010C": return (val / 4) + " RPM";
+        case "0105": return (val - 40) + " °C";
+        case "0123": return (val * 10) + " kPa";
+        case "0104": return Math.round(val * 100 / 255) + " % Load";
+        default: return hex;
+    }
+}
+
+// Modify your readStandardSensors loop to include:
+// log(`${pid.name}: ${translateData(pid.id, rawHex)}`);
         function startPinger() {
             if (pinger) clearInterval(pinger);
             pinger = setInterval(async () => {
