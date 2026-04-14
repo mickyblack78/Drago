@@ -208,8 +208,8 @@
             if (attemptIndex >= keyGuesses.length) attemptIndex = 0;
             let calculatedKey = keyGuesses[attemptIndex](lastSeed);
             log(`ATTEMPT #${attemptIndex + 1}: Trying [${calculatedKey}]`);
-            let res = await send("2705" + calculatedKey + "\r");
-            if (res.includes("6705")) {
+            let res = await send("2706" + calculatedKey + "\r");
+            if (res.includes("6707")) {
                 log("SUCCESS! Level 05 Unlocked.");
             } else {
                 log("KEY FAILED: " + res);
