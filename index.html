@@ -164,51 +164,46 @@
         }
 
         async function requestLevel03() {
-    if (!port) { log("ERROR: NO CONNECTION"); return; }
-    
-    // 1. SAFETY LOCK: Kill the pinger and block all other traffic.
-    if (pinger) clearInterval(pinger);
-    isHandshaking = true;
-    log("--- SAFETY MODE ACTIVE: PINGA DISABLED ---");
+            if (!port) { log("ERROR: NO CONNECTION"); return; }
+            
+            // 1. SAFETY LOCK: Kill the pinger so it cannot clash
+            if (pinger) clearInterval(pinger);
+            isHandshaking = true;
+            log("--- SAFETY MODE ACTIVE: PINGA DISABLED ---");
 
-    log("STEP 1: SWITCHING TO EXTENDED SESSION...");
-    let sessionRes = await send("1003\r");
-    
-    // 2. HANDSHAKE CHECK: Don't move an inch unless the ECU says 5003.
-    if (!sessionRes.includes("5003")) {
-        log("!! SESSION FAILED: ECU NOT READY. RESTARTING PINGA...");
-        isHandshaking = false;
-        startPinger();
-        return;
-    }
+            log("STEP 1: SWITCHING TO EXTENDED SESSION...");
+            let sessionRes = await send("1003\r");
+            
+            // 2. HANDSHAKE CHECK
+            if (!sessionRes.includes("5003")) {
+                log("!! SESSION FAILED: ECU NOT READY.");
+                isHandshaking = false;
+                startPinger(); 
+                return;
+            }
 
-    log("STEP 2: SESSION STABILIZED. WAITING FOR CLEAR LINE...");
-    await new Promise(r => setTimeout(r, 1000)); // Full 1s safety pause
+            log("STEP 2: SESSION STABILIZED. WAITING...");
+            await new Promise(r => setTimeout(r, 1000)); 
 
-    log("STEP 3: REQUESTING SEED...");
-    let res = await send("2703\r");
-    
-    // 3. THE SEED VAULT: Look specifically for '6703' and lock it in.
-    if (res.includes("6703")) {
-        // This extracts exactly 4 characters after '6703'
-        lastSeed = res.split("6703")[1].substring(0, 4);
-        
-        // PERMANENT DISPLAY: This stays on your screen even if everything else fails
-        log("************************************");
-        log("CRITICAL SEED CAPTURED: " + lastSeed);
-        log("************************************");
-        
-        await tryNextKey();
-    } else {
-        log("FAILED SEED REQUEST: " + res);
-    }
-
-    // 4. EXIT PROTOCOL: Only restart the heartrate after the dust settles.
-    log("--- RELEASING SAFETY LOCK ---");
-    isHandshaking = false;
-    startPinger();
+            log("STEP 3: REQUESTING SEED...");
+            let res = await send("2703\r");
+            
+            // 3. THE SEED VAULT
+            if (res.includes("6703")) {
+                lastSeed = res.split("6703")[1].substring(0, 4);
+                log("************************************");
+                log("CRITICAL SEED CAPTURED: " + lastSeed);
+                log("************************************");
+                
+                // Hand the logic over to the key function
+                await tryNextKey(); 
+            } else {
+                log("FAILED SEED REQUEST: " + res);
+                // Restart only if we didn't find a seed to follow up on
+                isHandshaking = false;
+                startPinger(); 
+            }
         }
-
         async function tryNextKey() {
             if (attemptIndex >= keyGuesses.length) attemptIndex = 0;
             let calculatedKey = keyGuesses[attemptIndex](lastSeed);
